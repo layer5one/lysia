@@ -11,8 +11,8 @@ connected_clients = set()
 
 async def broadcast(state, data=None, audio_chunk=None):
     message = {"state": state, "data": data}
-    if audio_chunk:
-        message["audio_chunk"] = list(audio_chunk)  # Send as list for JSON
+    if audio_chunk is not None:
+        message["audio_chunk"] = audio_chunk.tolist()  # Send as list for JSON
     msg_json = json.dumps(message)
     for client in list(connected_clients):
         try:
@@ -41,7 +41,7 @@ async def handle_interaction():
             if user_input.lower() in ["exit", "quit", "bye"]:
                 await broadcast("idle", {"response": "Goodbye!"})
                 for chunk in generate_audio_chunks("Goodbye!"):
-                    await broadcast("audio_chunk", audio_chunk=chunk.tobytes())
+                    await broadcast("audio_chunk", audio_chunk=chunk)
                 break
             
             await broadcast("thinking")
@@ -49,7 +49,7 @@ async def handle_interaction():
             print(f"Elysia: {response}")
             await broadcast("speaking", {"response": response})
             for chunk in generate_audio_chunks(response):
-                await broadcast("audio_chunk", audio_chunk=chunk.tobytes())
+                await broadcast("audio_chunk", audio_chunk=chunk)
             
             store_memory(user_input, response)
 
