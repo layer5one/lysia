@@ -1,17 +1,26 @@
-import speech_recognition as sr
+from vosk import Model, KaldiRecognizer
+import pyaudio
+import json
+
+with open('config.json', 'r') as f:
+    config = json.load(f)
+
+model = Model(config['stt_model_path'])
+rec = KaldiRecognizer(model, 16000)
 
 def listen():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening...")
-        audio = recognizer.listen(source)
-        try:
-            text = recognizer.recognize_google(audio)
-            print(f"User: {text}")
-            return text
-        except sr.UnknownValueError:
-            print("Could not understand.")
-            return None
-        except sr.RequestError:
-            print("Network issue.")
-            return None
+    p = pyaudio.PyAudio()
+    stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8000)
+    stream.start_stream()
+    print("Listening...")
+    while True:
+        data = stream.read(4000)
+        if rec.AcceptWaveform(data):
+            result = json.loads(rec.Result())
+            text = result.get('text', '')
+            if text:
+                print(f"User: {text}")
+                stream.stop_stream()
+                stream.close()
+                p.terminate()
+                return text
