@@ -3,7 +3,7 @@ import websockets
 import ollama
 import json
 from memory import store_memory, retrieve_relevant_memory
-from tts import speak
+from tts import generate_audio_chunks  # Updated import
 from stt import listen
 from prompts import system_prompt
 
@@ -22,10 +22,13 @@ async def broadcast(state, data=None, audio_chunk=None):
 
 def generate_response(user_input):
     memory = retrieve_relevant_memory(user_input)
+    
     prompt = system_prompt
     if memory:
         prompt += f"\nRelevant past context:\n{memory}\n"
+    
     prompt += f"\nUser: {user_input}\nElysia:"
+    
     response = ollama.generate(model="elysia:latest", prompt=prompt)['response']
     return response
 
@@ -36,14 +39,18 @@ async def handle_interaction():
         user_input = listen()
         if user_input:
             if user_input.lower() in ["exit", "quit", "bye"]:
-                await speak("Goodbye!", broadcast_audio=True)
                 await broadcast("idle", {"response": "Goodbye!"})
+                for chunk in generate_audio_chunks("Goodbye!"):
+                    await broadcast("audio_chunk", audio_chunk=chunk.tobytes())
                 break
+            
             await broadcast("thinking")
             response = generate_response(user_input)
             print(f"Elysia: {response}")
             await broadcast("speaking", {"response": response})
-            await speak(response, broadcast_audio=True)
+            for chunk in generate_audio_chunks(response):
+                await broadcast("audio_chunk", audio_chunk=chunk.tobytes())
+            
             store_memory(user_input, response)
 
 async def websocket_handler(websocket, path=None):
@@ -59,7 +66,7 @@ async def websocket_handler(websocket, path=None):
 async def main():
     server = await websockets.serve(websocket_handler, "localhost", 8000)
     print("Hello, I'm Elysia. Ready to chat?")
-    await asyncio.Future()
+    await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
     asyncio.run(main())
