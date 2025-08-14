@@ -3,6 +3,7 @@ import numpy as np
 from queue import Queue
 import json
 import os
+import torch
 
 config_path = os.path.join(os.path.dirname(__file__), 'config.json')
 with open(config_path, 'r') as f:
@@ -14,6 +15,8 @@ audio_queue = Queue()
 async def speak(text, broadcast_audio=False):
     generator = pipeline(text, voice=config['tts_voice'])
     for _, _, audio in generator:
+        if isinstance(audio, torch.Tensor):
+            audio = audio.cpu().numpy()
         chunk = audio.astype(np.float32)
         audio_queue.put(chunk)
     
