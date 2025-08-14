@@ -2,8 +2,10 @@ from kokoro import KPipeline
 import numpy as np
 from queue import Queue
 import json
+import os
 
-with open('config.json', 'r') as f:
+config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+with open(config_path, 'r') as f:
     config = json.load(f)
 
 pipeline = KPipeline(lang_code='a')
