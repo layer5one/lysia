@@ -1,12 +1,25 @@
 from kokoro import KPipeline
-import sounddevice as sd
 import numpy as np
+from queue import Queue
+import json
 
-pipeline = KPipeline(lang_code='a')  # American English
+with open('config.json', 'r') as f:
+    config = json.load(f)
 
-def speak(text):
-    generator = pipeline(text, voice='af_heart')
+pipeline = KPipeline(lang_code='a')
+audio_queue = Queue()
+
+async def speak(text, broadcast_audio=False):
+    generator = pipeline(text, voice=config['tts_voice'])
     for _, _, audio in generator:
-        # Audio is numpy array, play directly
-        sd.play(audio.astype(np.float32), samplerate=24000)
-        sd.wait()
+        chunk = audio.astype(np.float32)
+        audio_queue.put(chunk)
+    
+    while not audio_queue.empty():
+        chunk = audio_queue.get()
+        if broadcast_audio:
+            # Broadcast chunk for frontend playback/viz
+            await broadcast("audio_chunk", audio_chunk=chunk.tobytes())
+        # Backend fallback playback (optional, toggle if needed)
+        # sd.play(chunk, samplerate=24000)
+        # sd.wait()
