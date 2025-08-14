@@ -46,7 +46,7 @@ async def handle_interaction():
             await speak(response, broadcast_audio=True)
             store_memory(user_input, response)
 
-async def websocket_handler(websocket, path):
+async def websocket_handler(websocket, path=None):
     connected_clients.add(websocket)
     try:
         async for message in websocket:
