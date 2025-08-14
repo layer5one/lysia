@@ -1,0 +1,7 @@
+ollama
+chromadb
+speechrecognition
+websockets
+kokoro>=0.9.4
+soundfile
+sounddevice
